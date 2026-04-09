@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPMC | Intelligent Predictive Maintenance & Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --navy: #0A192F;
+            --black: #000000;
+            --white: #FFFFFF;
+            --off-white: #F4F7F9;
+            --accent: #005A8B; /* Siemens-style accent */
+            --critical: #FF0000;
+            --warning: #FFCC00;
+            --normal: #00CC66;
+            --border: 2px solid #000000;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
+        body { background-color: var(--white); color: var(--black); overflow-x: hidden; scroll-behavior: smooth; }
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+
+        /* --- NAVIGATION --- */
+        nav {
+            background: var(--navy); color: var(--white); padding: 1.2rem 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: var(--border); position: sticky; top: 0; z-index: 2000;
+        }
+        .logo { font-weight: 900; font-size: 1.4rem; letter-spacing: 2px; text-transform: uppercase; }
+        .nav-links a { color: var(--white); margin-left: 25px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-links a:hover { color: var(--warning); }
+
+        /* --- FAST PROFESSIONAL SLIDER --- */
+        .slider-section { width: 100%; height: 650px; position: relative; overflow: hidden; background: var(--black); border-bottom: var(--border); }
+        .slide { position: absolute; width: 100%; height: 100%; opacity: 0; transform: scale(1.1); transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s ease-out; background-size: cover; background-position: center; }
+        .slide.active { opacity: 1; transform: scale(1); z-index: 10; }
+        .slide-overlay { background: linear-gradient(90deg, rgba(10, 25, 47, 0.9) 0%, rgba(10, 25, 47, 0.4) 100%); width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 0 8%; color: var(--white); }
+        .slide-overlay h1 { font-size: 4.5rem; text-transform: uppercase; line-height: 0.9; margin-bottom: 20px; letter-spacing: -2px; }
+        .slide-overlay p { font-size: 1.2rem; max-width: 600px; border-left: 4px solid var(--white); padding-left: 20px; text-transform: uppercase; margin-bottom: 30px; }
+        .btn-link { display: inline-block; padding: 15px 40px; background: var(--white); color: var(--black); font-weight: 900; text-transform: uppercase; border: 2px solid var(--white); }
+        .btn-link:hover { background: transparent; color: var(--white); }
+
+        /* --- LIVE TELEMETRY SECTION --- */
+        .section { padding: 6rem 5%; border-bottom: 1px solid #eee; }
+        .section-title { background: var(--black); color: var(--white); display: inline-block; padding: 10px 30px; margin-bottom: 3rem; text-transform: uppercase; font-weight: 900; letter-spacing: 2px; }
+        
+        .monitor-container { border: var(--border); display: grid; grid-template-columns: 320px 1fr 1fr; background: var(--white); }
+        .sidebar-stats { border-right: var(--border); background: var(--off-white); }
+        .stat-item { padding: 2.5rem; border-bottom: var(--border); display: block; transition: 0.2s; }
+        .stat-item:hover { background: #eef2f7; }
+        .stat-label { font-size: 0.75rem; font-weight: 900; color: #666; text-transform: uppercase; }
+        .stat-value { font-size: 3rem; font-weight: 900; display: block; margin-top: 5px; }
+        .chart-area { padding: 2rem; border-right: 1px solid #ddd; height: 500px; }
+        .chart-area h4 { font-size: 0.8rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        /* --- PRODUCT CARDS --- */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
+        .card { border: var(--border); padding: 4rem 2.5rem; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); background: white; height: 100%; }
+        .card:hover { background: var(--navy); color: var(--white); transform: translateY(-10px); }
+        .card i { font-size: 3rem; margin-bottom: 2rem; color: var(--accent); }
+        .card:hover i { color: var(--white); }
+        .card h3 { text-transform: uppercase; font-size: 1.5rem; margin-bottom: 15px; }
+
+        /* --- ARTICLES / INSIGHTS --- */
+        .article-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 40px; }
+        .article-card { border: 1px solid #ddd; overflow: hidden; display: flex; flex-direction: column; }
+        .article-img { width: 100%; height: 250px; object-fit: cover; filter: grayscale(100%); transition: 0.5s; }
+        .article-card:hover .article-img { filter: grayscale(0%); }
+        .article-content { padding: 2.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+        .article-content h3 { font-size: 1.4rem; text-transform: uppercase; margin-bottom: 15px; font-weight: 800; }
+        .article-content p { line-height: 1.7; color: #555; margin-bottom: 20px; flex-grow: 1; }
+        .read-more-btn { font-weight: 900; text-transform: uppercase; font-size: 0.8rem; border-bottom: 3px solid var(--navy); padding-bottom: 5px; align-self: flex-start; }
+
+        /* --- CORPORATE FOOTER --- */
+        footer { background: var(--navy); color: var(--white); padding: 6rem 5% 2rem; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 60px; padding-bottom: 4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .footer-about h2 { font-size: 2rem; font-weight: 900; margin-bottom: 20px; letter-spacing: 2px; }
+        .footer-about p { opacity: 0.7; line-height: 1.8; margin-bottom: 30px; }
+        .footer-links h4 { text-transform: uppercase; font-size: 0.9rem; margin-bottom: 25px; color: #8892B0; }
+        .footer-links ul { list-style: none; }
+        .footer-links li { margin-bottom: 15px; font-size: 0.9rem; }
+        .footer-links a:hover { color: var(--warning); padding-left: 8px; }
+
+        .social-bar { display: flex; gap: 20px; }
+        .social-bar a { font-size: 1.5rem; transition: 0.3s; }
+        .social-bar a:hover { color: var(--warning); transform: scale(1.2); }
+
+        .footer-bottom { padding-top: 2rem; display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.5; }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .monitor-container { grid-template-columns: 1fr; }
+            .sidebar-stats { display: flex; border-right: none; border-bottom: var(--border); }
+            .stat-item { flex: 1; border-bottom: none; border-right: var(--border); }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body onload="initSystem()">
+
+    <nav>
+        <div class="logo">IPMC_SYSTEMS</div>
+        <div class="nav-links">
+            <a href="#monitoring">Telemetry</a>
+            <a href="#hardware">Hardware</a>
+            <a href="#insights">Insights</a>
+            <a href="#about">Corporate</a>
+        </div>
+    </nav>
+
+    <header class="slider-section">
+        <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1600&q=80')">
+            <div class="slide-overlay">
+                <h1>Dashboard<br>for Now</h1>
+                <p>Advanced Predictive Maintenance Systems for Industry 4.0</p>
+                <a href="#monitoring" class="btn-link">Enter Terminal</a>
+            </div>
+        </div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1600&q=80')">
+            <div class="slide-overlay">
+                <h1>Vibration<br>Intelligence</h1>
+                <p>Detecting machine fatigue before it leads to failure.</p>
+                <a href="https://example.com/tech-specs" class="btn-link">View Tech Specs</a>
+            </div>
+        </div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?auto=format&fit=crop&w=1600&q=80')">
+            <div class="slide-overlay">
+                <h1>Thermal<br>Stability</h1>
+                <p>Automated cooling and shutdown protocols for hardware protection.</p>
+                <a href="https://example.com/cases" class="btn-link">Case Studies</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="section" id="monitoring">
+        <div class="section-title">Live Terminal Data</div>
+        <div class="monitor-container">
+            <div class="sidebar-stats">
+                <a href="https://example.com/temp-logs" class="stat-item">
+                    <span class="stat-label">Thermal Index (DHT22)</span>
+                    <span class="stat-value" id="temp-val">--</span>
+                </a>
+                <a href="https://example.com/vib-logs" class="stat-item">
+                    <span class="stat-label">Vibration G-Force (ADXL345)</span>
+                    <span class="stat-value" id="vib-val">--</span>
+                </a>
+                <div class="status-display">
+                    <span class="stat-label">System State</span>
+                    <span id="status-tag" class="status-pill" style="margin-top:10px; background:black; color:white; padding:10px; display:block; font-weight:900;">ONLINE</span>
+                </div>
+            </div>
+            
+            <div class="chart-area">
+                <h4><i class="fas fa-thermometer-half"></i> Thermal Drift Analytics</h4>
+                <div style="height: 100%"><canvas id="tempChart"></canvas></div>
+            </div>
+            <div class="chart-area">
+                <h4><i class="fas fa-wave-square"></i> Vibration Frequency Pattern</h4>
+                <div style="height: 100%"><canvas id="vibChart"></canvas></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="hardware" style="background: var(--off-white);">
+        <div class="section-title">Integrated Hardware</div>
+        <div class="card-grid">
+            <a href="https://example.com/sensors">
+                <div class="card">
+                    <i class="fas fa-microchip"></i>
+                    <h3>Sensor Array</h3>
+                    <p>Precise ADXL345 and DHT22 modules capture high-fidelity raw industrial environmental data.</p>
+                </div>
+            </a>
+            <a href="https://example.com/esp32">
+                <div class="card">
+                    <i class="fas fa-network-wired"></i>
+                    <h3>Edge Gateway</h3>
+                    <p>Powered by ESP32, our gateway handles sub-millisecond processing and MQTT cloud uplinks.</p>
+                </div>
+            </a>
+            <a href="https://example.com/safety">
+                <div class="card">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Safety Interlocks</h3>
+                    <p>Autonomous relay-based shutdown prevents catastrophic motor or hardware damage.</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="section" id="insights">
+        <div class="section-title">Global Insights</div>
+        <div class="article-grid">
+            <div class="article-card">
+                <img src="https://images.unsplash.com/photo-1565608438257-fac3c27beb36?auto=format&fit=crop&w=800&q=80" class="article-img">
+                <div class="article-content">
+                    <h3>The ROI of Prediction</h3>
+                    <p>Transitioning from reactive to predictive maintenance reduces downtime by 45%. Learn how IPMC helps industries save millions in operation costs.</p>
+                    <a href="https://example.com/roi" class="read-more-btn">Read Article</a>
+                </div>
+            </div>
+            <div class="article-card">
+                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80" class="article-img">
+                <div class="article-content">
+                    <h3>Edge vs. Cloud Analytics</h3>
+                    <p>Latency is the enemy of safety. We discuss why local edge processing is the standard for modern industrial IoT failsafes.</p>
+                    <a href="https://example.com/edge-logic" class="read-more-btn">Technical Review</a>
+                </div>
+            </div>
+            <div class="article-card">
+                <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80" class="article-img">
+                <div class="article-content">
+                    <h3>Digital Twin Integration</h3>
+                    <p>See how IPMC's data stream builds an accurate virtual model of your machinery for long-term stress simulations.</p>
+                    <a href="https://example.com/digital-twin" class="read-more-btn">Integration Guide</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="about">
+        <div class="footer-grid">
+            <div class="footer-about">
+                <h2>IPMC_SYSTEMS</h2>
+                <p>We provide the intelligence behind industrial endurance. By combining high-frequency sensor data with edge computing, we create resilient systems that predict the future of machine health.</p>
+                <div class="social-bar">
+                    <a href="https://linkedin.com"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://twitter.com"><i class="fab fa-twitter"></i></a>
+                    <a href="https://github.com"><i class="fab fa-github"></i></a>
+                    <a href="https://facebook.com"><i class="fab fa-facebook"></i></a>
+                </div>
+            </div>
+            <div class="footer-links">
+                <h4>Ecosystem</h4>
+                <ul>
+                    <li><a href="https://example.com/api">API Access</a></li>
+                    <li><a href="https://example.com/cloud">Cloud Portal</a></li>
+                    <li><a href="https://example.com/edge">Edge Firmware</a></li>
+                    <li><a href="https://example.com/partners">Partner Program</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="https://example.com/careers">Careers</a></li>
+                    <li><a href="https://example.com/press">Press Kit</a></li>
+                    <li><a href="https://example.com/legal">Legal & Compliance</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="tel:+910000000000">Support: +91-XXXXX</a></li>
+                    <li><a href="mailto:support@ipmc.com">Email Technical Support</a></li>
+                    <li><a href="https://example.com/docs">Documentation</a></li>
+                    <li><a href="https://example.com/community">User Forum</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Intelligent Predictive Maintenance & Control (IPMC) Inc.</p>
+            <p>DESIGN_SPEC_V4.8.2 // SECURE_UPLINK_READY</p>
+        </div>
+    </footer>
+
+    <script>
+        // FAST SLIDER LOGIC
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        setInterval(() => {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }, 2500);
+
+        // LIVE CHARTS LOGIC
+        let tempChart, vibChart;
+        function initSystem() {
+            const chartConfig = (color, label) => ({
+                type: 'line',
+                data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(0), borderColor: color, borderWidth: 3, pointRadius: 0, tension: 0.2, fill: true, backgroundColor: color + '11' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+
+            tempChart = new Chart(document.getElementById('tempChart'), chartConfig('#0A192F'));
+            vibChart = new Chart(document.getElementById('vibChart'), chartConfig('#FF0000'));
+            setInterval(simulateData, 2000);
+        }
+
+        function simulateData() {
+            let t = (25 + Math.random() * 50).toFixed(1);
+            let v = (Math.random() * 4.5).toFixed(2);
+            document.getElementById('temp-val').innerText = t + "°C";
+            document.getElementById('vib-val').innerText = v + "G";
+
+            let tag = document.getElementById('status-tag');
+            if(t > 70 || v > 4) { tag.innerText="CRITICAL"; tag.style.background="red"; }
+            else if(t > 50 || v > 2.5) { tag.innerText="WARNING"; tag.style.background="orange"; }
+            else { tag.innerText="NORMAL"; tag.style.background="#00CC66"; }
+
+            tempChart.data.datasets[0].data.push(t); tempChart.data.datasets[0].data.shift();
+            vibChart.data.datasets[0].data.push(v); vibChart.data.datasets[0].data.shift();
+            tempChart.update(); vibChart.update();
+        }
+    </script>
+</body>
+</html>
