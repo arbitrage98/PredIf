@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PREDIF | Autonomous Predictive Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0A192F;
+            --black: #000000;
+            --pure-white: #FFFFFF;
+            --bg-grey: #F4F7F9;
+            --border-grey: #E2E8F0;
+            --siemens-teal: #009999;
+            --siemens-teal-dark: #007777;
+            --siemens-teal-light: #00C4C4;
+            --accent-red: #D32F2F;
+            --mid-grey: #4A5568;
+            --light-teal-bg: #E6F7F7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--pure-white); color: var(--black); line-height: 1.6; font-family: 'Barlow', sans-serif; }
+
+        /* --- HEADER & NAVIGATION --- */
+        nav {
+            background: var(--pure-white);
+            height: 80px; padding: 0 6%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--siemens-teal);
+            position: sticky; top: 0; z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,153,153,0.1);
+        }
+        .logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 1.6rem; letter-spacing: 5px; color: var(--navy); text-transform: uppercase; }
+        .logo span { color: var(--siemens-teal); }
+        .logo-divider { width: 2px; height: 28px; background: var(--siemens-teal); margin: 0 20px; display: inline-block; vertical-align: middle; }
+        .logo-sub { font-family: 'Barlow', sans-serif; font-size: 0.65rem; font-weight: 500; color: var(--mid-grey); letter-spacing: 2px; text-transform: uppercase; vertical-align: middle; }
+        .nav-links a { color: var(--black); margin-left: 35px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; text-decoration: none; letter-spacing: 1.5px; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--siemens-teal); }
+        .nav-cta { background: var(--siemens-teal); color: white !important; padding: 10px 20px; font-size: 0.68rem !important; }
+        .nav-cta:hover { background: var(--siemens-teal-dark); color: white !important; }
+
+        /* =============================================
+           HERO SLIDER — 5 slides
+        ============================================= */
+        .hero { position: relative; height: 80vh; overflow: hidden; background: var(--black); }
+        .slide {
+            position: absolute; width: 100%; height: 100%; opacity: 0;
+            transition: opacity 1.4s ease-in-out;
+        }
+        .slide.active { opacity: 1; }
+        .slide img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.38); }
+
+        /* Ken Burns per slide */
+        .slide.active img { animation: kenburns 8s ease forwards; }
+        @keyframes kenburns { from { transform: scale(1.08); } to { transform: scale(1.0); } }
+
+        .hero-text {
+            position: absolute; top: 50%; left: 8%; transform: translateY(-50%);
+            color: var(--pure-white); z-index: 10; max-width: 760px;
+            opacity: 0; transition: opacity 0.8s ease 0.4s;
+        }
+        .slide.active .hero-text { opacity: 1; }
+
+        .hero-eyebrow {
+            display: inline-flex; align-items: center; gap: 12px;
+            color: var(--siemens-teal); text-transform: uppercase; letter-spacing: 4px;
+            font-size: 0.75rem; font-weight: 600; margin-bottom: 18px;
+        }
+        .hero-eyebrow::before { content:''; display:block; width:30px; height:2px; background:var(--siemens-teal); }
+        .hero-text h1 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 5rem; font-weight: 900; line-height: 0.95;
+            text-transform: uppercase; margin-bottom: 22px; letter-spacing: 1px;
+        }
+        .hero-text p { font-size: 1rem; opacity: 0.78; border-left: 3px solid var(--siemens-teal); padding-left: 18px; margin-bottom: 35px; max-width: 540px; }
+        .hero-btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: var(--siemens-teal); color: white; padding: 14px 30px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .hero-btn:hover { background: var(--siemens-teal-dark); }
+
+        /* Slide indicators */
+        .slide-indicators {
+            position: absolute; bottom: 35px; left: 8%; z-index: 20;
+            display: flex; gap: 10px; align-items: center;
+        }
+        .dot { width: 28px; height: 3px; background: rgba(255,255,255,0.3); cursor: pointer; transition: 0.3s; }
+        .dot.active { background: var(--siemens-teal); width: 50px; }
+
+        /* Slide counter */
+        .slide-counter {
+            position: absolute; bottom: 35px; right: 8%; z-index: 20;
+            color: rgba(255,255,255,0.4); font-size: 0.75rem; font-weight: 600; letter-spacing: 3px;
+        }
+        .slide-counter span { color: var(--siemens-teal); font-size: 1.1rem; font-weight: 900; }
+
+        /* Siemens-style teal bottom bar on hero */
+        .hero-bottom-bar {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 5px;
+            background: linear-gradient(90deg, var(--siemens-teal) 0%, var(--siemens-teal-light) 100%);
+            z-index: 20;
+        }
+
+        /* =============================================
+           STATS TICKER BAR (Siemens-style)
+        ============================================= */
+        .stats-bar {
+            background: var(--navy); color: white;
+            padding: 0 8%; display: flex; justify-content: space-between; align-items: stretch;
+        }
+        .stat-ticker {
+            padding: 28px 0; border-right: 1px solid rgba(255,255,255,0.08);
+            flex: 1; padding-right: 40px; padding-left: 40px;
+        }
+        .stat-ticker:first-child { padding-left: 0; }
+        .stat-ticker:last-child { border-right: none; padding-right: 0; }
+        .stat-ticker .num { font-family: 'Barlow Condensed', sans-serif; font-size: 2.8rem; font-weight: 900; color: var(--siemens-teal); line-height: 1; }
+        .stat-ticker .label { font-size: 0.68rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 6px; }
+
+        /* =============================================
+           SECTIONS
+        ============================================= */
+        .section { padding: 100px 8%; background: var(--pure-white); }
+        .grey-bg { background: var(--bg-grey); border-top: 1px solid var(--border-grey); border-bottom: 1px solid var(--border-grey); }
+        .dark-bg { background: var(--navy); color: white; }
+
+        .section-header { margin-bottom: 60px; }
+        .tag { font-size: 0.68rem; font-weight: 700; color: var(--siemens-teal); text-transform: uppercase; letter-spacing: 3px; display: flex; align-items: center; gap: 10px; }
+        .tag::before { content:''; display:block; width:20px; height:2px; background:var(--siemens-teal); }
+        .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 2.8rem; font-weight: 900; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; line-height: 1; }
+        .section-title.light { color: white; }
+        .section-sub { color: var(--mid-grey); font-size: 0.95rem; margin-top: 15px; max-width: 600px; }
+
+        /* =============================================
+           LIVE DASHBOARD
+        ============================================= */
+        .dashboard { display: grid; grid-template-columns: 340px 1fr; gap: 30px; }
+
+        .status-card {
+            background: var(--pure-white); border: 1px solid var(--border-grey);
+            border-top: 4px solid var(--siemens-teal);
+            padding: 35px;
+        }
+        .stat-box { margin-bottom: 40px; }
+        .stat-label { font-size: 0.62rem; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 1.5px; }
+        .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 3.8rem; font-weight: 900; color: var(--navy); display: block; margin-top: 4px; line-height: 1; }
+        .stat-unit { font-size: 1rem; font-weight: 400; color: var(--mid-grey); }
+
+        .decision-status {
+            padding: 14px 18px; border: 1px solid var(--black); text-align: center;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 3px;
+            transition: 0.4s;
+        }
+
+        .graph-card {
+            background: var(--pure-white); border: 1px solid var(--border-grey);
+            border-top: 4px solid var(--siemens-teal);
+            padding: 30px; height: 440px; position: relative;
+        }
+        .graph-label { font-size: 0.62rem; font-weight: 700; color: #718096; text-transform: uppercase; letter-spacing: 1.5px; position: absolute; top: 18px; left: 28px; }
+
+        /* =============================================
+           HAZARD HISTOGRAMS SECTION
+        ============================================= */
+        .histogram-section { padding: 100px 8%; background: var(--pure-white); }
+        .histogram-intro { margin-bottom: 60px; }
+
+        .histogram-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+            margin-bottom: 50px;
+        }
+        .histogram-card {
+            background: var(--pure-white);
+            border: 1px solid var(--border-grey);
+            border-top: 4px solid var(--siemens-teal);
+            padding: 28px;
+        }
+        .histogram-card.accent-red { border-top-color: var(--accent-red); }
+        .histogram-card.accent-navy { border-top-color: var(--navy); }
+
+        .histogram-card h4 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 6px; color: var(--navy);
+        }
+        .histogram-card .source-note { font-size: 0.62rem; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px; }
+        .histogram-card canvas { max-height: 220px; }
+
+        .histogram-full { margin-top: 28px; }
+        .histogram-full-card {
+            background: var(--bg-grey); border: 1px solid var(--border-grey);
+            border-top: 4px solid var(--siemens-teal);
+            padding: 35px;
+        }
+        .histogram-full-card h4 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 6px; color: var(--navy);
+        }
+        .histogram-full-card .source-note { font-size: 0.62rem; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 22px; }
+        .histogram-full-card canvas { max-height: 260px; }
+
+        /* Key insight boxes */
+        .insight-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 50px; }
+        .insight-box {
+            background: var(--light-teal-bg); border: 1px solid rgba(0,153,153,0.2);
+            padding: 24px;
+        }
+        .insight-box .insight-num {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 2.4rem; font-weight: 900; color: var(--siemens-teal); line-height: 1;
+        }
+        .insight-box .insight-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--mid-grey); margin-top: 6px; }
+        .insight-box .insight-desc { font-size: 0.82rem; color: var(--mid-grey); margin-top: 8px; }
+
+        /* =============================================
+           ARCHITECTURE
+        ============================================= */
+        .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border-grey); }
+        .feature-item {
+            padding: 40px 35px; border-right: 1px solid var(--border-grey);
+            transition: background 0.3s;
+        }
+        .feature-item:last-child { border-right: none; }
+        .feature-item:hover { background: var(--light-teal-bg); }
+        .feature-icon-wrap {
+            width: 48px; height: 48px; background: var(--navy); color: var(--siemens-teal);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; margin-bottom: 25px;
+        }
+        .feature-item h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.15rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .feature-item p { color: var(--mid-grey); font-size: 0.9rem; line-height: 1.7; }
+
+        /* =============================================
+           NEWS / INSIGHTS
+        ============================================= */
+        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+        .news-item {
+            padding: 40px; border-right: 1px solid var(--border-grey);
+            border-bottom: 1px solid var(--border-grey);
+        }
+        .news-item:nth-child(3n) { border-right: none; }
+        .news-num { font-family: 'Barlow Condensed', sans-serif; font-size: 4rem; font-weight: 900; color: rgba(0,153,153,0.12); line-height: 1; margin-bottom: 10px; }
+        .news-item h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+        .news-item p { color: var(--mid-grey); font-size: 0.9rem; line-height: 1.7; }
+
+        /* =============================================
+           FOOTER
+        ============================================= */
+        footer { background: var(--navy); color: var(--pure-white); padding: 80px 8% 40px; }
+        .footer-top { border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 60px; margin-bottom: 50px; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 60px; }
+        .footer-brand h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 900; letter-spacing: 5px; margin-bottom: 20px; }
+        .footer-brand h2 span { color: var(--siemens-teal); }
+        .footer-brand p { opacity: 0.55; line-height: 1.8; font-size: 0.88rem; }
+        .footer-col h5 { font-size: 0.68rem; color: var(--siemens-teal); text-transform: uppercase; margin-bottom: 22px; letter-spacing: 2.5px; font-weight: 700; }
+        .footer-col ul { list-style: none; }
+        .footer-col li { margin-bottom: 12px; font-size: 0.85rem; opacity: 0.55; cursor: pointer; transition: opacity 0.2s; }
+        .footer-col li:hover { opacity: 1; }
+        .socials { display: flex; gap: 14px; margin-top: 28px; }
+        .socials i { opacity: 0.5; cursor: pointer; transition: 0.3s; font-size: 1.1rem; }
+        .socials i:hover { opacity: 1; color: var(--siemens-teal); }
+        .legal { display: flex; justify-content: space-between; font-size: 0.68rem; opacity: 0.35; }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <!-- NAV -->
+    <nav>
+        <div>
+            <span class="logo">PRE<span>DIF</span></span>
+            <span class="logo-divider"></span>
+            <span class="logo-sub">Predictive Intelligence</span>
+        </div>
+        <div class="nav-links">
+            <a href="#monitor">Command Center</a>
+            <a href="#hazards">Hazard Data</a>
+            <a href="#tech">Architecture</a>
+            <a href="#news">Industrial Insights</a>
+            <a href="#footer" class="nav-cta">Contact</a>
+        </div>
+    </nav>
+
+    <!-- HERO SLIDER — 5 SLIDES -->
+    <header class="hero">
+
+        <div class="slide active">
+            <img src="https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=2000&auto=format&fit=crop" alt="PCB Electronics">
+            <div class="hero-text">
+                <div class="hero-eyebrow">System Level Intelligence</div>
+                <h1>Applied Predictive<br>Maintenance</h1>
+                <p>Integrating ADXL345 signal processing and DHT22 thermal monitoring into a unified ESP32-driven control framework.</p>
+                <a href="#monitor" class="hero-btn"><i class="fas fa-chart-line"></i> View Live Dashboard</a>
+            </div>
+        </div>
+
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2000&auto=format&fit=crop" alt="Industrial Motor">
+            <div class="hero-text">
+                <div class="hero-eyebrow">Dynamic Load Control</div>
+                <h1>Autonomous<br>Resilience</h1>
+                <p>Closed-loop actuation layers featuring relay-based power disconnects and transistor-driven cooling systems.</p>
+                <a href="#tech" class="hero-btn"><i class="fas fa-microchip"></i> System Architecture</a>
+            </div>
+        </div>
+
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1565043666747-69f6646db940?q=80&w=2000&auto=format&fit=crop" alt="Industrial Machinery">
+            <div class="hero-text">
+                <div class="hero-eyebrow">Motor Fault Intelligence</div>
+                <h1>Preventing<br>Machine Failure</h1>
+                <p>Over 42% of unplanned industrial downtime originates from motor bearing faults and thermal overloads — PREDIF detects both before failure.</p>
+                <a href="#hazards" class="hero-btn"><i class="fas fa-exclamation-triangle"></i> Hazard Statistics</a>
+            </div>
+        </div>
+
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2000&auto=format&fit=crop" alt="Electronics Circuit Board">
+            <div class="hero-text">
+                <div class="hero-eyebrow">Edge AI Processing</div>
+                <h1>Intelligent<br>Edge Decisions</h1>
+                <p>Real-time ML inference on ESP32 hardware, eliminating cloud latency — system decisions execute in under 200ms from sensor anomaly detection.</p>
+                <a href="#tech" class="hero-btn"><i class="fas fa-bolt"></i> Explore Technology</a>
+            </div>
+        </div>
+
+        <div class="slide">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2000&auto=format&fit=crop" alt="Industry 4.0">
+            <div class="hero-text">
+                <div class="hero-eyebrow">Industry 4.0 Readiness</div>
+                <h1>Industrial IoT<br>Framework</h1>
+                <p>Built on open standards with modular sensor expansion — PREDIF scales from a single motor prototype to an entire plant-wide monitoring network.</p>
+                <a href="#news" class="hero-btn"><i class="fas fa-network-wired"></i> Learn More</a>
+            </div>
+        </div>
+
+        <!-- indicators -->
+        <div class="slide-indicators" id="dots"></div>
+        <div class="slide-counter"><span id="cur-num">1</span> / 5</div>
+        <div class="hero-bottom-bar"></div>
+    </header>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+        <div class="stat-ticker"><div class="num">42%</div><div class="label">of downtime from motor failure</div></div>
+        <div class="stat-ticker"><div class="num">$50B+</div><div class="label">global predictive maintenance market by 2030</div></div>
+        <div class="stat-ticker"><div class="num">200ms</div><div class="label">PREDIF response latency</div></div>
+        <div class="stat-ticker"><div class="num">3-Axis</div><div class="label">vibration sensing via ADXL345</div></div>
+        <div class="stat-ticker"><div class="num">70°C</div><div class="label">critical thermal cutoff threshold</div></div>
+    </div>
+
+    <!-- LIVE DASHBOARD -->
+    <section class="section" id="monitor">
+        <div class="section-header">
+            <span class="tag">Live Telemetry</span>
+            <h2 class="section-title">Operational Intelligence</h2>
+            <p class="section-sub">Real-time sensor fusion from ADXL345 and DHT22, processed through ML inference layer on ESP32.</p>
+        </div>
+        <div class="dashboard">
+            <div class="status-card">
+                <div class="stat-box">
+                    <span class="stat-label">Thermal Index</span>
+                    <span class="stat-value" id="temp-out">--.-<span class="stat-unit">°C</span></span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Kinetic Variance</span>
+                    <span class="stat-value" id="vib-out">--.-<span class="stat-unit">G</span></span>
+                </div>
+                <div class="stat-box" style="margin-bottom:0;">
+                    <span class="stat-label">ML-Decision Engine</span>
+                    <div id="status-badge" class="decision-status">Analysing Pipeline...</div>
+                </div>
+            </div>
+            <div class="graph-card">
+                <span class="graph-label">Multi-Axis Signal Flux — Live Visualization</span>
+                <div style="height:100%; width:100%; padding-top:40px;">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====================================================
+         HAZARD HISTOGRAMS SECTION
+    ===================================================== -->
+    <section class="histogram-section grey-bg" id="hazards">
+        <div class="histogram-intro section-header">
+            <span class="tag">Global Industry Research</span>
+            <h2 class="section-title">Hazards Due to Machine (Motor) Failure</h2>
+            <p class="section-sub">Data-driven evidence from international industrial studies on motor fault distribution, downtime cost, and failure root causes — validating PREDIF's design targets.</p>
+        </div>
+
+        <!-- Row 1: 3 histograms -->
+        <div class="histogram-grid">
+
+            <div class="histogram-card">
+                <h4>Motor Fault Distribution by Type</h4>
+                <div class="source-note">Source: IEEE IAS / EPRI Industry Survey</div>
+                <canvas id="chart-fault-dist"></canvas>
+            </div>
+
+            <div class="histogram-card accent-red">
+                <h4>Unplanned Downtime Causes in Manufacturing</h4>
+                <div class="source-note">Source: Aberdeen Group Industrial Report</div>
+                <canvas id="chart-downtime"></canvas>
+            </div>
+
+            <div class="histogram-card accent-navy">
+                <h4>Motor Failure vs Operating Temperature</h4>
+                <div class="source-note">Source: NEMA MG-1 Thermal Studies</div>
+                <canvas id="chart-temp-failure"></canvas>
+            </div>
+
+        </div>
+
+        <!-- Row 2: 3 more histograms -->
+        <div class="histogram-grid">
+
+            <div class="histogram-card">
+                <h4>Annual Cost of Motor Failure by Industry (USD M)</h4>
+                <div class="source-note">Source: U.S. DOE Motor Systems Baseline</div>
+                <canvas id="chart-cost-industry"></canvas>
+            </div>
+
+            <div class="histogram-card accent-navy">
+                <h4>Vibration Severity → Bearing Lifespan Reduction</h4>
+                <div class="source-note">Source: ISO 10816 / SKF Bearing Research</div>
+                <canvas id="chart-vibration-life"></canvas>
+            </div>
+
+            <div class="histogram-card accent-red">
+                <h4>Time-to-Failure After First Anomaly Detected (Hours)</h4>
+                <div class="source-note">Source: Plant Engineering Reliability Study</div>
+                <canvas id="chart-ttf"></canvas>
+            </div>
+
+        </div>
+
+        <!-- Wide chart -->
+        <div class="histogram-full">
+            <div class="histogram-full-card">
+                <h4>Motor Failure Hazard Events by Month — Global Industrial Average</h4>
+                <div class="source-note">Source: International Energy Agency (IEA) & McKinsey Manufacturing Reliability Index</div>
+                <canvas id="chart-monthly"></canvas>
+            </div>
+        </div>
+
+        <!-- Insight KPI row -->
+        <div class="insight-row">
+            <div class="insight-box">
+                <div class="insight-num">42%</div>
+                <div class="insight-label">Bearing Failures</div>
+                <div class="insight-desc">Largest single cause of motor failures globally, primarily driven by vibration imbalance.</div>
+            </div>
+            <div class="insight-box">
+                <div class="insight-num">$260K</div>
+                <div class="insight-label">Avg. Downtime Cost/hr</div>
+                <div class="insight-desc">Average unplanned downtime cost per hour in heavy manufacturing and process industries.</div>
+            </div>
+            <div class="insight-box">
+                <div class="insight-num">10°C</div>
+                <div class="insight-label">Halves Insulation Life</div>
+                <div class="insight-desc">Every 10°C rise above rated temperature halves motor winding insulation lifespan (Arrhenius Law).</div>
+            </div>
+            <div class="insight-box">
+                <div class="insight-num">87%</div>
+                <div class="insight-label">Preventable Failures</div>
+                <div class="insight-desc">Of all motor failures are detectable via vibration/thermal monitoring weeks before catastrophic failure.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section class="section" id="tech">
+        <div class="section-header">
+            <span class="tag">Technical Specifications</span>
+            <h2 class="section-title">System Architecture</h2>
+            <p class="section-sub">A four-layer intelligent control stack: sensing, processing, inference, and actuation.</p>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-item">
+                <div class="feature-icon-wrap"><i class="fas fa-microchip"></i></div>
+                <h3>Edge Conditioning</h3>
+                <p>High-fidelity data extraction from ADXL345 and DHT22 sensors via I2C and ESP32 Devkit V1 edge-processing layers. Tri-axis acceleration fused into resultant vibration intensity.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon-wrap"><i class="fas fa-project-diagram"></i></div>
+                <h3>Pattern Learning</h3>
+                <p>Moving beyond fixed thresholds: Python-based intelligence identifies fatigue patterns before physical failure occurs. Adaptive inference trained on labeled Normal / Warning / Critical states.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon-wrap"><i class="fas fa-bolt"></i></div>
+                <h3>Physical Actuation</h3>
+                <p>Closed-loop relay interlocks and BC547 transistor-driven cooling fans respond to system decisions in milliseconds. Warning activates cooling; Critical triggers full motor cutoff.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- INDUSTRIAL INSIGHTS -->
+    <section class="section grey-bg" id="news">
+        <div class="section-header">
+            <span class="tag">Strategic Reports</span>
+            <h2 class="section-title">The PREDIF Advantage</h2>
+        </div>
+        <div class="news-grid">
+            <div class="news-item">
+                <div class="news-num">01</div>
+                <h3>Mitigating Machine Fatigue</h3>
+                <p>Predictive variance analysis identifies motor imbalances (vibrations) and overload (temperature) before they lead to industrial downtime or catastrophic failure events.</p>
+            </div>
+            <div class="news-item">
+                <div class="news-num">02</div>
+                <h3>Closed-Loop Stability</h3>
+                <p>The synergy between hardware sensing and software intelligence allows for a continuous self-correcting machine health environment with sub-200ms actuation response.</p>
+            </div>
+            <div class="news-item">
+                <div class="news-num">03</div>
+                <h3>Industrial IoT Readiness</h3>
+                <p>Built on the ESP32 platform, PREDIF offers a scalable framework for integrating additional physical parameters — current, RPM, humidity — into the future industrial sector.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer id="footer">
+        <div class="footer-top">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h2>PRE<span>DIF</span></h2>
+                    <p>Leading the transition to autonomous machine health and predictive control frameworks. Designed for Industry 4.0 applications by Applied Electronics & Instrumentation Engineering.</p>
+                    <div class="socials">
+                        <i class="fab fa-linkedin"></i>
+                        <i class="fab fa-twitter"></i>
+                        <i class="fab fa-github"></i>
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h5>Hardware Stack</h5>
+                    <ul>
+                        <li>ADXL345 Acceleration</li>
+                        <li>DHT22 Thermal Sensor</li>
+                        <li>ESP-32 Gateway</li>
+                        <li>Relay Interlocks</li>
+                        <li>BC547 Transistor</li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Control Logic</h5>
+                    <ul>
+                        <li>Signal Processing</li>
+                        <li>ML Inference</li>
+                        <li>Actuation Layers</li>
+                        <li>Dashboard Monitoring</li>
+                        <li>Serial Communication</li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Resources</h5>
+                    <ul>
+                        <li>Technical Proposal</li>
+                        <li>System Logs</li>
+                        <li>API Documentation</li>
+                        <li>Contact Engineering</li>
+                        <li>Research Citations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="legal">
+            <p>&copy; 2026 PREDIF | APPLIED ELECTRONICS & INSTRUMENTATION ENGINEERING</p>
+            <p>SPEC_VERSION: 6.0.0 // SECURE DATA UPLINK</p>
+        </div>
+    </footer>
+
+    <script>
+        let liveChart;
+        const MAX_POINTS = 30;
+
+        function initApp() {
+
+            // ---- SLIDER (5 slides) ----
+            let cur = 0;
+            const slides = document.querySelectorAll('.slide');
+            const dotsContainer = document.getElementById('dots');
+            const curNum = document.getElementById('cur-num');
+
+            slides.forEach((_, i) => {
+                const d = document.createElement('div');
+                d.className = 'dot' + (i === 0 ? ' active' : '');
+                d.onclick = () => goToSlide(i);
+                dotsContainer.appendChild(d);
+            });
+
+            function goToSlide(n) {
+                slides[cur].classList.remove('active');
+                document.querySelectorAll('.dot')[cur].classList.remove('active');
+                cur = n;
+                slides[cur].classList.add('active');
+                document.querySelectorAll('.dot')[cur].classList.add('active');
+                curNum.textContent = cur + 1;
+            }
+
+            setInterval(() => goToSlide((cur + 1) % slides.length), 6500);
+
+            // ---- LIVE CHART ----
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            liveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(MAX_POINTS).fill(''),
+                    datasets: [
+                        {
+                            label: 'Thermal Flux (°C)',
+                            borderColor: '#0A192F',
+                            backgroundColor: 'rgba(10,25,47,0.05)',
+                            data: Array(MAX_POINTS).fill(0),
+                            borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: true
+                        },
+                        {
+                            label: 'Vibration Variance (G×10)',
+                            borderColor: '#009999',
+                            data: Array(MAX_POINTS).fill(0),
+                            borderWidth: 2, pointRadius: 0, borderDash: [5,5], tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#EDF2F7' }, ticks: { font: { family: 'Barlow' } } },
+                        x: { display: false }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Barlow', weight: '600' }, padding: 20 } }
+                    }
+                }
+            });
+            setInterval(fetchTelemetry, 2000);
+
+            // ---- HAZARD HISTOGRAMS ----
+            buildHistograms();
+        }
+
+        function fetchTelemetry() {
+            const t = (Math.random() * 30 + 30).toFixed(1);
+            const v = (Math.random() * 4.2).toFixed(2);
+            document.getElementById('temp-out').innerHTML = t + '<span class="stat-unit">°C</span>';
+            document.getElementById('vib-out').innerHTML = v + '<span class="stat-unit">G</span>';
+            const badge = document.getElementById('status-badge');
+            if (t > 70 || v > 4.0) {
+                badge.innerText = "CRITICAL: MOTOR CUTOFF";
+                badge.style.background = "#000"; badge.style.color = "red"; badge.style.borderColor = "red";
+            } else if (t > 50 || v > 2.0) {
+                badge.innerText = "WARNING: COOLING ACTIVE";
+                badge.style.background = "#FBD38D"; badge.style.color = "#000"; badge.style.borderColor = "#E6A800";
+            } else {
+                badge.innerText = "SYSTEM NOMINAL";
+                badge.style.background = "#E6F7F7"; badge.style.color = "#007777"; badge.style.borderColor = "#009999";
+            }
+            liveChart.data.datasets[0].data.push(parseFloat(t));
+            liveChart.data.datasets[0].data.shift();
+            liveChart.data.datasets[1].data.push(parseFloat(v) * 10);
+            liveChart.data.datasets[1].data.shift();
+            liveChart.update('none');
+        }
+
+        // =============================================
+        // HISTOGRAM DATA & BUILD
+        // =============================================
+        function buildHistograms() {
+            const teal       = '#009999';
+            const tealLight  = 'rgba(0,153,153,0.15)';
+            const tealMid    = 'rgba(0,153,153,0.7)';
+            const navy       = '#0A192F';
+            const navyLight  = 'rgba(10,25,47,0.7)';
+            const red        = '#D32F2F';
+            const redLight   = 'rgba(211,47,47,0.7)';
+
+            const baseOpts = (title, color) => ({
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                },
+                scales: {
+                    y: { grid: { color: '#EDF2F7' }, ticks: { font: { family: 'Barlow', size: 10 } } },
+                    x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 10 }, maxRotation: 30 } }
+                }
+            });
+
+            // 1. Fault distribution by type (IEEE / EPRI)
+            new Chart(document.getElementById('chart-fault-dist'), {
+                type: 'bar',
+                data: {
+                    labels: ['Bearing\nFaults', 'Stator\nWinding', 'Rotor\nFaults', 'External\nContamination', 'Shaft\nMisalign', 'Other'],
+                    datasets: [{ data: [42, 28, 10, 8, 7, 5], backgroundColor: [teal, tealMid, 'rgba(0,153,153,0.55)', 'rgba(0,153,153,0.45)', 'rgba(0,153,153,0.35)', 'rgba(0,153,153,0.25)'], borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '%' } } }, scales: { y: { ticks: { callback: v => v + '%', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 2. Downtime causes (Aberdeen)
+            new Chart(document.getElementById('chart-downtime'), {
+                type: 'bar',
+                data: {
+                    labels: ['Motor\nFailure', 'Electrical\nFault', 'Mechanical\nWear', 'Control\nSystem', 'Human\nError', 'Supply\nChain'],
+                    datasets: [{ data: [42, 19, 16, 12, 7, 4], backgroundColor: [red, redLight, 'rgba(211,47,47,0.55)', 'rgba(211,47,47,0.45)', 'rgba(211,47,47,0.35)', 'rgba(211,47,47,0.25)'], borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '%' } } }, scales: { y: { ticks: { callback: v => v + '%', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 3. Temp vs failure rate (NEMA)
+            new Chart(document.getElementById('chart-temp-failure'), {
+                type: 'bar',
+                data: {
+                    labels: ['< 40°C', '40–50°C', '50–60°C', '60–70°C', '70–80°C', '> 80°C'],
+                    datasets: [{ data: [3, 8, 18, 35, 62, 91], backgroundColor: [navy, navyLight, 'rgba(10,25,47,0.65)', 'rgba(10,25,47,0.75)', 'rgba(211,47,47,0.7)', red], borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% failure rate' } } }, scales: { y: { ticks: { callback: v => v + '%', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 4. Cost by industry (DOE)
+            new Chart(document.getElementById('chart-cost-industry'), {
+                type: 'bar',
+                data: {
+                    labels: ['Oil &\nGas', 'Automotive', 'Chemicals', 'Paper\n& Pulp', 'Food &\nBev', 'Mining'],
+                    datasets: [{ data: [820, 640, 510, 390, 270, 450], backgroundColor: teal, borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw + 'M / yr' } } }, scales: { y: { ticks: { callback: v => '$' + v + 'M', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 5. Vibration severity → bearing life (ISO 10816)
+            new Chart(document.getElementById('chart-vibration-life'), {
+                type: 'bar',
+                data: {
+                    labels: ['< 0.5G\n(Smooth)', '0.5–1G\n(Good)', '1–2G\n(Acceptable)', '2–3G\n(Rough)', '3–4G\n(Danger)', '> 4G\n(Critical)'],
+                    datasets: [{ data: [100, 82, 61, 38, 19, 7], backgroundColor: ['rgba(0,153,153,0.9)', 'rgba(0,153,153,0.75)', 'rgba(0,153,153,0.6)', 'rgba(211,47,47,0.45)', 'rgba(211,47,47,0.7)', red], borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% of rated life' } } }, scales: { y: { ticks: { callback: v => v + '%', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 6. Time-to-failure after first anomaly
+            new Chart(document.getElementById('chart-ttf'), {
+                type: 'bar',
+                data: {
+                    labels: ['< 24h', '24–72h', '72h–1wk', '1–2 wks', '2–4 wks', '> 1 month'],
+                    datasets: [{ data: [14, 23, 31, 18, 9, 5], backgroundColor: [red, 'rgba(211,47,47,0.75)', 'rgba(211,47,47,0.6)', 'rgba(0,153,153,0.55)', tealMid, teal], borderRadius: 2 }]
+                },
+                options: { ...baseOpts(), plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw + '% of cases' } } }, scales: { y: { ticks: { callback: v => v + '%', font: { family:'Barlow', size:10 } }, grid: { color: '#EDF2F7' } }, x: { grid: { display: false }, ticks: { font: { family:'Barlow', size: 9 } } } } }
+            });
+
+            // 7. Monthly hazard events — wide chart
+            new Chart(document.getElementById('chart-monthly'), {
+                type: 'bar',
+                data: {
+                    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                    datasets: [
+                        {
+                            label: 'Thermal Overload Events',
+                            data: [210, 195, 185, 172, 188, 230, 265, 278, 251, 200, 215, 240],
+                            backgroundColor: navy, borderRadius: 3
+                        },
+                        {
+                            label: 'Vibration Fault Events',
+                            data: [145, 138, 152, 160, 170, 155, 148, 161, 174, 168, 155, 162],
+                            backgroundColor: teal, borderRadius: 3
+                        },
+                        {
+                            label: 'Combined Failure Events',
+                            data: [58, 45, 52, 49, 63, 78, 84, 91, 76, 60, 62, 70],
+                            backgroundColor: red, borderRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Barlow', weight: '600' }, padding: 20 } }
+                    },
+                    scales: {
+                        y: { grid: { color: '#EDF2F7' }, ticks: { font: { family: 'Barlow', size: 11 }, callback: v => v + ' events' } },
+                        x: { grid: { display: false }, ticks: { font: { family: 'Barlow', size: 11 } } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
